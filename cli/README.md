@@ -3,7 +3,7 @@
 openYuanrong Agent Runtime 的命令行工具。Agent 本质上就是函数,`ar` 把函数的注册、调用包装成对底层 FaaS HTTP 接口的调用。
 
 - `ar deploy` —— 通过 meta_service 注册一个 agent(函数)。
-- `ar exec` —— 调用 agent(函数),并以 SSE 流式输出返回结果。
+- `ar exec` —— 调用 agent(函数),并以 SSE 流式输出返回结果;未传 `--args` 时进入交互模式。
 
 详细设计见 [`../docs/ar-cli-design.md`](../docs/ar-cli-design.md)。
 
@@ -67,11 +67,15 @@ ar exec --agent <FUNCTION_VERSION_URN> --server <FRONTEND_ADDR> [可选参数]
 | `--session-id` | 否 | 无 | 实例会话 id;**传入才会带 `X-Instance-Session` 请求头** |
 | `--session-ttl` | 否 | 90 | 实例会话 TTL;仅在传了 `--session-id` 时生效 |
 | `--concurrency` | 否 | 1 | 实例会话并发数;仅在传了 `--session-id` 时生效 |
-| `--args` | 否 | 无 | handler 入参,JSON 字符串;不传则不发送请求体 |
+| `--args` | 否 | 无 | handler 入参,JSON 字符串;不传则进入交互模式 |
 
 说明:
 
 - 只有 `--agent` 和 `--server` 必选,其余均可选。
+- 传入 `--args` 时执行一次性调用,请求体原样使用该 JSON 字符串。
+- 未传 `--args` 时进入交互模式;每轮用户输入会自动包装为 `{"message":"用户输入"}` 后发起一次调用。
+- 交互模式下若未传 `--session-ctx`,会自动生成一个会话上下文,并在每次调用中携带同一个 `X-Agent-Session` 请求头;若已传入,则使用用户提供的值。
+- 交互模式输入 `/exit` 或 `/quit` 退出。
 - 返回结果为 SSE 流,`ar` 会边接收边持续输出,直到服务端发送结束标记。
 
 示例:
@@ -79,6 +83,9 @@ ar exec --agent <FUNCTION_VERSION_URN> --server <FRONTEND_ADDR> [可选参数]
 ```bash
 # 最简调用
 ar exec --agent <URN> --server 127.0.0.1:31180
+
+# 一次性调用
+ar exec --agent <URN> --server 127.0.0.1:31180 --args '{"message":"你好"}'
 
 # 带会话上下文与入参
 ar exec --agent <URN> --server 127.0.0.1:31180 \
