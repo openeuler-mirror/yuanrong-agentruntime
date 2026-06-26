@@ -1,0 +1,125 @@
+#!/usr/bin/env python3
+# coding=UTF-8
+# Copyright (c) Huawei Technologies Co., Ltd. 2026. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import json
+
+from click.testing import CliRunner
+
+from ar_cli.const import HEADER_AGENT_SESSION
+from ar_cli.main import cli
+
+
+class FakeResponse:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        return False
+
+    def iter_lines(self, decode_unicode=False):
+        yield "data: ok"
+        yield "data: [DONE]"
+
+
+def _capture_invocations(monkeypatch):
+    captured = []
+
+    def fake_invoke(self, server, urn, *, headers, body):
+        captured.append(
+            {
+                "server": server,
+                "urn": urn,
+                "headers": headers,
+                "body": body,
+            }
+        )
+        return FakeResponse()
+
+    monkeypatch.setattr("ar_cli.client.AgentRuntimeClient.invoke", fake_invoke)
+    return captured
+
+
+def test_exec_with_args_invokes_once_and_preserves_json_body(monkeypatch):
+    captured = _capture_invocations(monkeypatch)
+    runner = CliRunner()
+
+    result = runner.invoke(
+        cli,
+        ["exec", "--agent", "urn:demo", "--server", "frontend:31180", "--args", '"你好"'],
+    )
+
+    assert result.exit_code == 0
+    assert len(captured) == 1
+    assert captured[0]["server"] == "http://frontend:31180"
+    assert captured[0]["urn"] == "urn:demo"
+    assert captured[0]["body"] == '"你好"'
+    assert HEADER_AGENT_SESSION not in captured[0]["headers"]
+
+
+def test_exec_without_args_enters_interactive_mode_and_wraps_messages(monkeypatch):
+    captured = _capture_invocations(monkeypatch)
+    runner = CliRunner()
+
+    result = runner.invoke(
+        cli,
+        ["exec", "--agent", "urn:demo", "--server", "frontend:31180"],
+        input="你好\n下一轮\n/quit\n",
+    )
+
+    assert result.exit_code == 0
+    assert [json.loads(item["body"]) for item in captured] == [
+        {"message": "你好"},
+        {"message": "下一轮"},
+    ]
+
+    session_headers = [json.loads(item["headers"][HEADER_AGENT_SESSION]) for item in captured]
+    assert session_headers[0] == session_headers[1]
+    assert session_headers[0]["sessionCtx"].startswith("ar-")
+
+
+def test_interactive_mode_uses_user_session_ctx(monkeypatch):
+    captured = _capture_invocations(monkeypatch)
+    runner = CliRunner()
+
+    result = runner.invoke(
+        cli,
+        [
+            "exec",
+            "--agent",
+            "urn:demo",
+            "--server",
+            "frontend:31180",
+            "--session-ctx",
+            "ctx-user",
+        ],
+        input="hello\n/exit\n",
+    )
+
+    assert result.exit_code == 0
+    assert len(captured) == 1
+    assert json.loads(captured[0]["headers"][HEADER_AGENT_SESSION]) == {"sessionCtx": "ctx-user"}
+
+
+def test_exec_args_still_requires_valid_json(monkeypatch):
+    _capture_invocations(monkeypatch)
+    runner = CliRunner()
+
+    result = runner.invoke(
+        cli,
+        ["exec", "--agent", "urn:demo", "--server", "frontend:31180", "--args", "not-json"],
+    )
+
+    assert result.exit_code == 2
