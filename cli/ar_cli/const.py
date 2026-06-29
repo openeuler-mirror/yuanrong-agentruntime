@@ -32,7 +32,7 @@ DEFAULT_CONCURRENCY = 1
 # --- request headers ---
 HEADER_CONTENT_TYPE = "Content-Type"
 HEADER_ACCEPT = "Accept"
-HEADER_AGENT_SESSION = "X-Agent-Session"
+HEADER_AGENT_SESSION = "X-Session-Context"
 HEADER_INSTANCE_SESSION = "X-Instance-Session"
 CONTENT_TYPE_JSON = "application/json"
 ACCEPT_SSE = "text/event-stream"

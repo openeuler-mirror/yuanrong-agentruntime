@@ -63,7 +63,7 @@ ar exec --agent <FUNCTION_VERSION_URN> --server <FRONTEND_ADDR> [可选参数]
 |------|------|------|------|
 | `--agent` | 是 | — | 要调用的 agent 的 functionVersionUrn |
 | `--server` | 是 | — | frontend 地址,格式为 `host:port`,例如 `127.0.0.1:31180`(默认 http,无需加 `http://` 前缀) |
-| `--session-ctx` | 否 | 无 | agent 会话上下文;**传入才会带 `X-Agent-Session` 请求头** |
+| `--session-ctx` | 否 | 无 | agent 会话上下文;**传入才会带 `X-Session-Context` 请求头** |
 | `--session-id` | 否 | 无 | 实例会话 id;**传入才会带 `X-Instance-Session` 请求头** |
 | `--session-ttl` | 否 | 90 | 实例会话 TTL;仅在传了 `--session-id` 时生效 |
 | `--concurrency` | 否 | 1 | 实例会话并发数;仅在传了 `--session-id` 时生效 |
@@ -74,7 +74,7 @@ ar exec --agent <FUNCTION_VERSION_URN> --server <FRONTEND_ADDR> [可选参数]
 - 只有 `--agent` 和 `--server` 必选,其余均可选。
 - 传入 `--args` 时执行一次性调用,请求体原样使用该 JSON 字符串。
 - 未传 `--args` 时进入交互模式;每轮用户输入会自动包装为 `{"message":"用户输入"}` 后发起一次调用。
-- 交互模式下若未传 `--session-ctx`,会自动生成一个会话上下文,并在每次调用中携带同一个 `X-Agent-Session` 请求头;若已传入,则使用用户提供的值。
+- 交互模式下若未传 `--session-ctx`,会自动生成一个会话上下文,并在每次调用中携带同一个 `X-Session-Context` 请求头;若已传入,则使用用户提供的值。
 - 交互模式输入 `/exit` 或 `/quit` 退出。
 - 返回结果为 SSE 流,`ar` 会边接收边持续输出,直到服务端发送结束标记。
 

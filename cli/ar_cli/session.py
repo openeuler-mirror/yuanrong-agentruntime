@@ -46,7 +46,7 @@ def build_invocation_headers(
     ``Content-Type`` and ``Accept`` are always present. The session headers are
     conditional:
 
-    - ``X-Agent-Session`` only when ``session_ctx`` is given.
+    - ``X-Session-Context`` only when ``session_ctx`` is given.
     - ``X-Instance-Session`` only when ``session_id`` is given; ``session_ttl``
       and ``concurrency`` fall back to their defaults (90 / 1) when ``None``.
     """

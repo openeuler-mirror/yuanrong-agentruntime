@@ -53,7 +53,7 @@ Example:\n
     required=True,
     help="frontend address as host:port, e.g. 127.0.0.1:31180 (http is assumed, no scheme needed).",
 )
-@click.option("--session-ctx", default=None, help="Agent session context; sets the X-Agent-Session header.")
+@click.option("--session-ctx", default=None, help="Agent session context; sets the X-Session-Context header.")
 @click.option("--session-id", default=None, help="Instance session id; sets the X-Instance-Session header.")
 @click.option(
     "--session-ttl",
